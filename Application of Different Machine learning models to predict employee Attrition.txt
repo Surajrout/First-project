@@ -1,0 +1,215 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix
+from sklearn import datasets
+from sklearn.metrics import accuracy_score
+#Reading the dataset
+data = pd.read_csv("Book1.csv")
+data.head()
+#Data Exploration
+print(data.isnull().sum())
+index=data.columns.values
+print(index)
+#data.shape
+#dropping null values
+data.dropna(axis=0,inplace=True)
+data.isnull().sum()
+data.shape
+# Let’s explore all the categorical values and visualize them
+gender_mat=data['Gender '].value_counts() #value_counts() function returns object containing counts of unique values
+print(gender_mat)
+data['Gender '].value_counts().plot(kind='bar',color=['salmon','lightblue'],title="Count of different gender")
+#Create a plot for crosstab
+
+pd.crosstab(data['Gender '],data['Stay/Left']).plot(kind="bar",figsize=(6,4))
+plt.title("Stay/Left vs Gender")
+plt.xlabel("Stay/Left")
+plt.ylabel("No of people who left based on gender")
+plt.legend(["Left","Stay"])
+plt.xticks(rotation=0)
+promotion_mat=data["Promoted/Non Promoted"].value_counts()
+print(promotion_mat)
+promotion_mat=data["Promoted/Non Promoted"].value_counts().plot(kind="bar",color=['salmon','lightblue'],title="Count of different gender")
+pd.crosstab(data["Promoted/Non Promoted"],data["Stay/Left"]).plot(kind="bar",figsize=(6,6))
+plt.title("Stay/Left vs Gender")
+plt.xlabel("Stay/Left")
+plt.ylabel("No of people who left based on promotion")
+plt.legend(["Left","Stay"])
+plt.xticks(rotation=0)
+print(data["Tenure Grp."].value_counts())
+pd.crosstab(data["Promoted/Non Promoted"],data["Stay/Left"]).plot(kind="bar",figsize=(10,6))
+pd.crosstab(data["Job Role Match"],data["Stay/Left"]).plot(kind="bar",figsize=(6,6))
+Hiring_mat = data["Hiring Source"].value_counts()
+Hiring_mat
+Marital_mat = data["Marital Status"].value_counts()
+print(Marital_mat)
+Emp_mat = data["Emp. Group"].value_counts()
+Emp_mat['other group'] = 1
+print(Emp_mat)
+job_mat = data["Job Role Match"].value_counts()
+job_mat
+tenure_mat = data["Tenure Grp."].value_counts()
+print(tenure_mat)
+#lets visualize the continuous data
+# Let's make our correlation matrix visual
+# Its Age vs stay/left
+sns.jointplot(x='Stay/Left',y='Age in YY.',data=data)
+sns.jointplot(x='Stay/Left',y='Experience (YY.MM)',data=data)
+#Data cleaning Encoding the locations column (categorized)
+location_mat= data["Location"].value_counts()
+print(location_mat)
+
+location_mat_new = {
+    'Chennai':       7,
+    'Noida':         6,
+    'Bangalore':     5,
+    'Hyderabad':     4,
+    'Pune':          3,
+    'Madurai':       2,
+    'Lucknow':       1,
+    'other place':   0,
+}
+
+print(location_mat_new)
+
+def location(x):
+    if str(x) in location_mat_new.keys():
+        return location_mat_new[str(x)]
+    else:
+        return location_mat_new['other place']
+    
+data_l = data["Location"].apply(location)
+data['New Location'] = data_l
+data.head()
+#convert the other categorical values to boolean variables
+gen = pd.get_dummies(data["Function"])
+gen.head()
+hr = pd.get_dummies(data["Hiring Source"])
+hr.head()
+#print(Marital_mat)
+def Mar(x):
+    if str(x) in Marital_mat.keys() and Marital_mat[str(x)] > 100:
+        return str(x)
+    else:
+        return 'other status'
+    
+data_l = data["Marital Status"].apply(Mar)
+data['New Marital'] = data_l
+data.head()
+Mr = pd.get_dummies(data["New Marital"])
+Mr.head()
+#Promoted/Not Promoted
+def Promoted(x):
+    if x == 'Promoted':
+        return int(1)
+    else:
+        return int(0)
+
+data_l = data["Promoted/Non Promoted"].apply(Promoted)
+data['New Promotion'] = data_l
+data.head()
+#encoding employee group
+Emp_mat_new = {
+    'B1': 4,
+    'B2': 3,
+    'B3': 2,
+    'other group': 1,
+}
+def emp(x):
+    if str(x) in Emp_mat_new.keys():
+        return str(x)
+    else:
+        return 'other group'
+ 
+data_l = data["Emp. Group"].apply(emp)
+data['New EMP'] = data_l
+
+emp = pd.get_dummies(data["New EMP"])
+data.head()
+#converting job role match 
+def Job(x):
+    if x == 'Yes':
+        return int(1)
+    else:
+        return int(0)
+    
+data_l = data["Job Role Match"].apply(Job)
+data['New Job Role Match'] = data_l
+data.head()
+data.shape
+#converting gender 
+#print(gender_mat)
+def Gen(x):
+    if x in gender_mat.keys():
+        return str(x)
+    else:
+        return 'other'
+
+data_l = data["Gender "].apply(Gen)
+data['New Gender'] = data_l
+data.head(20)
+gend = pd.get_dummies(data["New Gender"])
+gend.head()
+tengrp = pd.get_dummies(data["Tenure Grp."])
+tengrp.head()
+#let’s concatenate the columns which are being cleaned, sorted, and manipulated by us as processed data..
+dataset = pd.concat([data, hr, Mr, emp, tengrp, gen, gend], axis = 1)
+dataset.head()
+dataset.shape
+#Dropping the columns which are not important
+dataset.drop(["table id", "name", "Marital Status","Promoted/Non Promoted","Function","Tenure Grp.","Emp. Group","Job Role Match","Location"
+            ,"Hiring Source","Gender ", "Tenure", "New Gender", "New Marital", "New EMP","phone number"],axis=1,inplace=True)
+#dataset.drop(["phone number"],axis=1,inplace=True)
+dataset1=dataset
+dataset1.info()
+#making the co relation matrix visual
+# Let's make our correlation matrix visual
+corr_matrix=dataset1.corr()
+fig,ax=plt.subplots(figsize=(13,10))
+ax=sns.heatmap(corr_matrix,
+               annot=True,
+               linewidths=0.5,
+               fmt=".2f"
+              )
+dataset1['Stay/Left'].head()
+print(dataset1)
+dataset1.to_csv("processed table.csv")
+Final_dataset = pd.read_csv("processed table.csv")
+Final_dataset = pd.DataFrame(dataset)
+y = Final_dataset["Stay/Left"]
+X = Final_dataset.drop("Stay/Left",axis=1)
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.2,random_state=4)
+X_train.head()
+X_train.info()
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+lr=LogisticRegression(C = 0.1, random_state = 42, solver = 'liblinear')
+dt=DecisionTreeClassifier()
+knn = KNeighborsClassifier(n_neighbors=3)
+for a,b in zip([lr,dt,knn],["Logistic Regression","Decision Tree","KNN"]):
+    a.fit(X_train,y_train)
+    prediction=a.predict(X_train)
+    y_pred=a.predict(X_test)
+    score1=accuracy_score(y_train,prediction)
+    score=accuracy_score(y_test,y_pred)
+    msg1="[%s] training data accuracy is : %f" % (b,score1)
+    msg2="[%s] test data accuracy is : %f" % (b,score)
+    print(msg1)
+    print(msg2)
+model_scores={'Logistic Regression':lr.score(X_test,y_test),
+             'KNN classifier':knn.score(X_test,y_test),
+              'Decision tree':dt.score(X_test,y_test)
+             }
+model_scores
+model_compare=pd.DataFrame(model_scores,index=['accuracy'])
+model_compare
+model_compare.plot(kind="bar",figsize=(10,6))
+feature_dict=dict(zip(dataset.columns,list(lr.coef_[0])))
+feature_dict
+feature_df=pd.DataFrame(feature_dict,index=[0])
+feature_df.T.plot(kind="bar",legend=False,title="Feature Importance")
